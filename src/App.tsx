@@ -4,14 +4,14 @@ import { Terminal } from "./components/Terminal";
 import { portfolio } from "./data/portfolio";
 import type { Theme } from "./types";
 
-function App() {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const isDark = theme === "dark";
+function getInitialTheme(): Theme {
+  const savedTheme = window.localStorage.getItem("portfolio-theme");
+  return savedTheme === "dark" ? "dark" : "light";
+}
 
-  useEffect(() => {
-    const savedTheme = window.localStorage.getItem("portfolio-theme");
-    setTheme(savedTheme === "light" ? "light" : "dark");
-  }, []);
+function App() {
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const isDark = theme === "dark";
 
   useEffect(() => {
     document.body.dataset.theme = theme;
