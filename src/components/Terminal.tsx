@@ -292,7 +292,7 @@ export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
       }`}
     >
       <div
-        className={`flex items-center gap-2 border-b px-4 py-3 ${
+        className={`flex items-center gap-2 border-b px-3 py-2.5 sm:px-4 sm:py-3 ${
           isDark
             ? "border-[#3a3d45] bg-[linear-gradient(180deg,rgba(67,70,78,0.98),rgba(47,49,56,0.98))]"
             : "border-[#d7cfbf] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(240,235,226,0.96))]"
@@ -301,17 +301,17 @@ export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
         <span className="h-[11px] w-[11px] rounded-full bg-ember-400" />
         <span className="h-[11px] w-[11px] rounded-full bg-brass-400" />
         <span className="h-[11px] w-[11px] rounded-full bg-sage-500" />
-        <p className={`ml-2 font-mono text-sm ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+        <p className={`ml-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[0.78rem] sm:text-sm ${isDark ? "text-slate-400" : "text-slate-500"}`}>
           travis@portfolio:~ [{theme}]
         </p>
       </div>
       <div
         ref={scrollRef}
-        className={`relative min-h-[340px] p-4 font-mono text-[0.93rem] leading-7 ${
+        className={`relative h-[300px] min-h-[300px] p-3 font-mono text-[0.82rem] leading-6 sm:h-[340px] sm:min-h-[340px] sm:p-4 sm:text-[0.93rem] sm:leading-7 ${
           isDark
             ? "bg-[linear-gradient(180deg,rgba(10,11,13,0.98),rgba(15,16,19,0.98))]"
             : "bg-[linear-gradient(180deg,rgba(252,249,244,0.98),rgba(241,235,226,0.98))]"
-        } h-[340px] overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0`}
+        } overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0`}
       >
         <div
           aria-hidden="true"
@@ -332,11 +332,11 @@ export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
         <div className="relative grid gap-3 pr-1">
           {entries.map((entry, index) => (
             <div className="grid gap-2" key={`${entry.command}-${index}`}>
-              <div className="grid grid-cols-[auto_auto_auto_minmax(0,1fr)] items-center gap-3">
+              <div className="grid grid-cols-[auto_auto_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
                 <span className="text-sage-500">travis@portfolio</span>
                 <span className={isDark ? "text-mist-400" : "text-slate-500"}>~</span>
                 <span className={isDark ? "text-brass-400" : "text-[#8b5e34]"}>$</span>
-                <span className={isDark ? "text-sand-50" : "text-slate-900"}>{entry.command}</span>
+                <span className={`min-w-0 break-all ${isDark ? "text-sand-50" : "text-slate-900"}`}>{entry.command}</span>
               </div>
               <div className={`grid gap-2 ${isDark ? "text-sand-50" : "text-slate-900"}`}>
                 {entry.lines.map((line, lineIndex) => (
@@ -347,7 +347,7 @@ export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
           ))}
         </div>
         <form className="mt-4" onSubmit={onSubmit}>
-          <label className="grid grid-cols-[auto_auto_auto_minmax(0,1fr)] items-center gap-3">
+          <label className="grid grid-cols-[auto_auto_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
             <span className="text-sage-500">travis@portfolio</span>
             <span className={isDark ? "text-mist-400" : "text-slate-500"}>~</span>
             <span className={isDark ? "text-brass-400" : "text-[#8b5e34]"}>$</span>
