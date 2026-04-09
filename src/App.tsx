@@ -67,31 +67,33 @@ function App() {
       </header>
 
       <main className="pt-6 sm:pt-9" id="top">
-        <section className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
+        <section
+          className={`relative overflow-hidden rounded-[24px] border p-5 shadow-soft backdrop-blur-2xl sm:rounded-[28px] sm:p-8 lg:p-10 ${
+            isDark
+              ? "border-soft bg-[radial-gradient(circle_at_top_left,rgba(88,196,221,0.16),transparent_26%),radial-gradient(circle_at_top_right,rgba(242,193,78,0.12),transparent_24%),linear-gradient(160deg,rgba(46,48,53,0.96),rgba(34,35,39,0.92))]"
+              : "border-black/10 bg-[radial-gradient(circle_at_top_left,rgba(58,141,132,0.12),transparent_26%),radial-gradient(circle_at_top_right,rgba(139,94,52,0.1),transparent_24%),linear-gradient(160deg,rgba(255,252,247,0.96),rgba(244,237,226,0.92))]"
+          }`}
+        >
           <div
-            className={`relative overflow-hidden rounded-[24px] border p-6 shadow-soft backdrop-blur-2xl sm:rounded-[28px] sm:p-9 lg:p-[52px] ${
+            className={`absolute right-4 top-4 h-[86px] w-[86px] rounded-[24px] blur-[18px] sm:right-6 sm:top-6 sm:h-[110px] sm:w-[110px] sm:rounded-3xl ${
               isDark
-                ? "border-soft bg-[radial-gradient(circle_at_top_left,rgba(88,196,221,0.16),transparent_26%),linear-gradient(160deg,rgba(46,48,53,0.96),rgba(34,35,39,0.92))]"
-                : "border-black/10 bg-[radial-gradient(circle_at_top_left,rgba(58,141,132,0.12),transparent_26%),linear-gradient(160deg,rgba(255,252,247,0.96),rgba(244,237,226,0.92))]"
+                ? "bg-[linear-gradient(135deg,rgba(88,196,221,0.2),rgba(143,214,148,0.16))]"
+                : "bg-[linear-gradient(135deg,rgba(58,141,132,0.16),rgba(139,94,52,0.12))]"
             }`}
-          >
-            <div
-              className={`absolute right-4 top-4 h-[86px] w-[86px] rounded-[24px] blur-[18px] sm:right-6 sm:top-6 sm:h-[110px] sm:w-[110px] sm:rounded-3xl ${
-                isDark
-                  ? "bg-[linear-gradient(135deg,rgba(88,196,221,0.2),rgba(143,214,148,0.16))]"
-                  : "bg-[linear-gradient(135deg,rgba(58,141,132,0.16),rgba(139,94,52,0.12))]"
-              }`}
-            />
+          />
+          <div className="relative">
             <p className={`mb-3 text-[0.78rem] uppercase tracking-[0.18em] ${isDark ? "text-brass-400" : "text-[#8b5e34]"}`}>
               {portfolio.tagline}
             </p>
-            <h1 className={`max-w-[9ch] text-[clamp(2.7rem,13vw,6rem)] font-extrabold leading-[0.92] tracking-[-0.05em] sm:max-w-[8ch] sm:text-[clamp(3.1rem,6.8vw,6rem)] ${isDark ? "text-sand-50" : "text-slate-900"}`}>
+            <h1 className={`max-w-[9ch] text-[clamp(2.9rem,13vw,6rem)] font-extrabold leading-[0.92] tracking-[-0.05em] sm:max-w-[8ch] sm:text-[clamp(3.1rem,6.8vw,6rem)] ${isDark ? "text-sand-50" : "text-slate-900"}`}>
               {portfolio.name}
             </h1>
-            <p className={`mt-4 max-w-[58ch] text-[0.98rem] leading-7 sm:mt-[22px] sm:text-[1.04rem] ${isDark ? "text-muted" : "text-slate-600"}`}>
-              {portfolio.summary}
-            </p>
-            <div className="mt-6 grid gap-3 sm:mt-[30px] sm:flex sm:flex-wrap sm:gap-3.5">
+
+            <div className="mt-6 sm:mt-8">
+              <Terminal onThemeChange={setTheme} portfolio={portfolio} theme={theme} />
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:mt-7 sm:flex sm:flex-wrap sm:gap-3.5">
               <a
                 className={`inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded-full px-[18px] font-bold transition hover:-translate-y-px sm:min-h-[46px] ${
                   isDark
@@ -119,21 +121,12 @@ function App() {
                 <span>Open Resume</span>
               </a>
             </div>
-          </div>
 
-          <aside
-            className={`grid gap-5 rounded-[24px] border p-4 shadow-soft backdrop-blur-2xl sm:rounded-[28px] sm:p-[26px] ${
-              isDark
-                ? "border-soft bg-[radial-gradient(circle_at_top_right,rgba(242,193,78,0.12),transparent_28%),linear-gradient(180deg,rgba(46,48,53,0.98),rgba(34,35,39,0.94))]"
-                : "border-black/10 bg-[radial-gradient(circle_at_top_right,rgba(139,94,52,0.1),transparent_28%),linear-gradient(180deg,rgba(255,252,247,0.98),rgba(244,237,226,0.94))]"
-            }`}
-          >
-            <Terminal onThemeChange={setTheme} portfolio={portfolio} theme={theme} />
-            <div className="pt-1">
+            <div className="mt-7 pt-1">
               <p className={`mb-3 text-[0.78rem] uppercase tracking-[0.18em] ${isDark ? "text-brass-400" : "text-[#8b5e34]"}`}>
                 What I Focus On
               </p>
-              <ul className="grid list-none gap-3 p-0">
+              <ul className="grid list-none gap-3 p-0 lg:grid-cols-3">
                 {portfolio.focusAreas.map((focus) => (
                   <li
                     className={`rounded-[18px] border px-4 py-3 ${isDark ? "border-soft bg-white/5 text-sand-50" : "border-black/10 bg-white/60 text-slate-900"}`}
@@ -144,7 +137,7 @@ function App() {
                 ))}
               </ul>
             </div>
-          </aside>
+          </div>
         </section>
 
         <section

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PortfolioData, TerminalLine, Theme } from "../types";
 
 type TerminalProps = {
@@ -8,9 +8,14 @@ type TerminalProps = {
 };
 
 type Entry = {
-  command: string;
+  command?: string;
   lines: TerminalLine[];
 };
+
+type IntroStep =
+  | { type: "line"; text: string }
+  | { type: "summary"; text: string }
+  | { type: "muted"; text: string };
 
 type CommandResponse =
   | { lines: TerminalLine[] | "CLEAR"; theme?: never }
@@ -145,28 +150,46 @@ function TerminalLineView({ line, isDark }: { line: TerminalLine; isDark: boolea
 }
 
 export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
-  const isDark = theme === "dark";
+  const isDark = true;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const initialEntries = useMemo<Entry[]>(
+  const introTimeoutRef = useRef<number | null>(null);
+  const introSteps = useMemo<IntroStep[]>(
     () => [
-      {
-        command: "help",
-        lines: getCommandResponse(portfolio, "help").lines as TerminalLine[],
-      },
-      {
-        command: "about",
-        lines: getCommandResponse(portfolio, "about").lines as TerminalLine[],
-      },
+      { type: "summary", text: portfolio.summary },
+      { type: "muted", text: "Available commands:" },
+      ...((getCommandResponse(portfolio, "help").lines as TerminalLine[]).map((line) =>
+        typeof line === "string"
+          ? ({ type: "line", text: line } as IntroStep)
+          : ({
+              type: "muted",
+              text: "text" in line ? line.text : line.label,
+            } as IntroStep)
+      )),
     ],
     [portfolio]
   );
+  const getCompletedIntroEntries = useCallback(
+    (): Entry[] => [
+      {
+        lines: introSteps.map((step) =>
+          step.type === "line" || step.type === "summary"
+            ? step.text
+            : { type: "muted", text: step.text }
+        ),
+      },
+    ],
+    [introSteps]
+  );
 
-  const [entries, setEntries] = useState<Entry[]>(initialEntries);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [command, setCommand] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const [caretIndex, setCaretIndex] = useState(0);
+  const [introStepIndex, setIntroStepIndex] = useState(0);
+  const [introCharIndex, setIntroCharIndex] = useState(0);
+  const [isIntroComplete, setIsIntroComplete] = useState(false);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -179,14 +202,101 @@ export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
 
   useEffect(() => {
     const input = inputRef.current;
-    if (!input || document.activeElement !== input) {
+    if (!input || document.activeElement !== input || !isIntroComplete) {
       return;
     }
 
     input.setSelectionRange(caretIndex, caretIndex);
-  }, [caretIndex, command]);
+  }, [caretIndex, command, isIntroComplete]);
+
+  useEffect(() => {
+    if (isIntroComplete) {
+      return;
+    }
+
+    const activeStep = introSteps[introStepIndex];
+    if (!activeStep) {
+      setEntries(getCompletedIntroEntries());
+      setIsIntroComplete(true);
+      return;
+    }
+
+    if (introCharIndex === 0 && entries.length <= introStepIndex) {
+      setEntries((current) => [
+        ...current,
+        {
+          lines: [
+            activeStep.type === "line" || activeStep.type === "summary"
+              ? ""
+              : { type: "muted", text: "" },
+          ],
+        },
+      ]);
+      return;
+    }
+
+    const nextText = activeStep.text.slice(0, introCharIndex);
+    setEntries((current) => {
+      const next = [...current];
+      if (!next[introStepIndex]) {
+        return current;
+      }
+
+      next[introStepIndex] = {
+        ...next[introStepIndex],
+        lines: [
+          activeStep.type === "line" || activeStep.type === "summary"
+            ? nextText
+            : { type: "muted", text: nextText },
+        ],
+      };
+      return next;
+    });
+
+    introTimeoutRef.current = window.setTimeout(() => {
+      if (introCharIndex < activeStep.text.length) {
+        setIntroCharIndex((current) => current + 1);
+        return;
+      }
+
+      setIntroStepIndex((current) => current + 1);
+      setIntroCharIndex(0);
+    }, introCharIndex < activeStep.text.length
+      ? activeStep.type === "summary"
+        ? 42
+        : activeStep.type === "line"
+          ? 23
+          : 13
+      : activeStep.type === "summary"
+        ? 420
+        : activeStep.type === "line"
+          ? 275
+          : 150);
+
+    return () => {
+      if (introTimeoutRef.current !== null) {
+        window.clearTimeout(introTimeoutRef.current);
+      }
+    };
+  }, [entries.length, getCompletedIntroEntries, introCharIndex, introStepIndex, introSteps, isIntroComplete]);
+
+  const completeIntro = () => {
+    if (isIntroComplete) {
+      return;
+    }
+
+    if (introTimeoutRef.current !== null) {
+      window.clearTimeout(introTimeoutRef.current);
+    }
+
+    setEntries(getCompletedIntroEntries());
+    setIntroStepIndex(introSteps.length);
+    setIntroCharIndex(0);
+    setIsIntroComplete(true);
+  };
 
   const focusInput = () => {
+    completeIntro();
     const input = inputRef.current;
     if (!input) {
       return;
@@ -286,59 +396,51 @@ export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
         focusInput();
       }}
       className={`overflow-hidden rounded-[22px] border shadow-soft ${
-        isDark
-          ? "border-[#2b2d31] bg-[linear-gradient(180deg,rgba(30,31,35,0.98),rgba(16,17,20,0.99))] text-sand-50 shadow-[0_28px_70px_rgba(0,0,0,0.42)]"
-          : "border-[#d8d0c3] bg-[linear-gradient(180deg,rgba(248,244,238,0.99),rgba(236,229,219,0.99))] text-slate-900 shadow-[0_22px_50px_rgba(82,63,42,0.12)]"
+        "border-[#2b2d31] bg-[linear-gradient(180deg,rgba(30,31,35,0.98),rgba(16,17,20,0.99))] text-sand-50 shadow-[0_28px_70px_rgba(0,0,0,0.42)]"
       }`}
     >
       <div
         className={`flex items-center gap-2 border-b px-3 py-2.5 sm:px-4 sm:py-3 ${
-          isDark
-            ? "border-[#3a3d45] bg-[linear-gradient(180deg,rgba(67,70,78,0.98),rgba(47,49,56,0.98))]"
-            : "border-[#d7cfbf] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(240,235,226,0.96))]"
+          "border-[#3a3d45] bg-[linear-gradient(180deg,rgba(67,70,78,0.98),rgba(47,49,56,0.98))]"
         }`}
       >
         <span className="h-[11px] w-[11px] rounded-full bg-ember-400" />
         <span className="h-[11px] w-[11px] rounded-full bg-brass-400" />
         <span className="h-[11px] w-[11px] rounded-full bg-sage-500" />
-        <p className={`ml-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[0.78rem] sm:text-sm ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+        <p className="ml-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[0.78rem] text-slate-400 sm:text-sm">
           travis@portfolio:~ [{theme}]
         </p>
       </div>
       <div
         ref={scrollRef}
         className={`relative h-[300px] min-h-[300px] p-3 font-mono text-[0.82rem] leading-6 sm:h-[340px] sm:min-h-[340px] sm:p-4 sm:text-[0.93rem] sm:leading-7 ${
-          isDark
-            ? "bg-[linear-gradient(180deg,rgba(10,11,13,0.98),rgba(15,16,19,0.98))]"
-            : "bg-[linear-gradient(180deg,rgba(252,249,244,0.98),rgba(241,235,226,0.98))]"
+          "bg-[linear-gradient(180deg,rgba(10,11,13,0.98),rgba(15,16,19,0.98))]"
         } overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0`}
       >
         <div
           aria-hidden="true"
           className={`pointer-events-none absolute inset-0 ${
-            isDark
-              ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.024)_0,rgba(255,255,255,0.024)_1px,transparent_1px,transparent_4px)] opacity-40"
-              : "bg-[linear-gradient(180deg,rgba(60,52,42,0.02)_0,rgba(60,52,42,0.02)_1px,transparent_1px,transparent_4px)] opacity-25"
+            "bg-[linear-gradient(180deg,rgba(255,255,255,0.024)_0,rgba(255,255,255,0.024)_1px,transparent_1px,transparent_4px)] opacity-40"
           }`}
         />
         <div
           aria-hidden="true"
           className={`pointer-events-none absolute inset-x-0 top-0 h-14 ${
-            isDark
-              ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent)]"
-              : "bg-[linear-gradient(180deg,rgba(255,255,255,0.32),transparent)]"
+            "bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent)]"
           }`}
         />
         <div className="relative grid gap-3 pr-1">
           {entries.map((entry, index) => (
             <div className="grid gap-2" key={`${entry.command}-${index}`}>
-              <div className="grid grid-cols-[auto_auto_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
-                <span className="text-sage-500">travis@portfolio</span>
-                <span className={isDark ? "text-mist-400" : "text-slate-500"}>~</span>
-                <span className={isDark ? "text-brass-400" : "text-[#8b5e34]"}>$</span>
-                <span className={`min-w-0 break-all ${isDark ? "text-sand-50" : "text-slate-900"}`}>{entry.command}</span>
-              </div>
-              <div className={`grid gap-2 ${isDark ? "text-sand-50" : "text-slate-900"}`}>
+              {entry.command ? (
+                <div className="grid grid-cols-[auto_auto_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+                  <span className="text-sage-500">travis@portfolio</span>
+                  <span className="text-mist-400">~</span>
+                  <span className="text-brass-400">$</span>
+                  <span className="min-w-0 break-all text-sand-50">{entry.command}</span>
+                </div>
+              ) : null}
+              <div className="grid gap-2 text-sand-50">
                 {entry.lines.map((line, lineIndex) => (
                   <TerminalLineView isDark={isDark} key={lineIndex} line={line} />
                 ))}
@@ -354,15 +456,11 @@ export function Terminal({ portfolio, theme, onThemeChange }: TerminalProps) {
             <span className="relative block min-w-0">
               <span
                 aria-hidden="true"
-                className={`pointer-events-none flex min-h-[1.75rem] items-center whitespace-pre-wrap break-all ${
-                  isDark ? "text-sand-50" : "text-slate-900"
-                }`}
+                className="pointer-events-none flex min-h-[1.75rem] items-center whitespace-pre-wrap break-all text-sand-50"
               >
                 <span>{beforeCaret || (command.length === 0 ? " " : "")}</span>
                 <span
-                  className={`ml-px inline-block h-[1.05rem] w-[4px] shrink-0 animate-pulse ${
-                    isDark ? "bg-slate-200" : "bg-slate-300"
-                  }`}
+                  className="ml-px inline-block h-[1.05rem] w-[4px] shrink-0 animate-pulse bg-slate-200"
                 />
                 <span>{afterCaret}</span>
               </span>
